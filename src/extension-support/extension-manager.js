@@ -25,7 +25,10 @@ const builtinExtensions = {
     boost: () => require('../extensions/scratch3_boost'),
     gdxfor: () => require('../extensions/scratch3_gdx_for'),
     // rcute extensions
-    cube: () => require('../extensions/scratch3_rcute_cube'),
+    rcuteCube: () => require('../extensions/scratch3_rcute/scratch3_rcute_cube'),
+    rcuteCozmars: () => require('../extensions/scratch3_rcute/scratch3_rcute_cozmars'),
+    rcuteAiVision: () => require('../extensions/scratch3_rcute/scratch3_rcute_ai_vision'),
+    rcuteAiAudio: () => require('../extensions/scratch3_rcute/scratch3_rcute_ai_audio'),
 };
 
 /**
