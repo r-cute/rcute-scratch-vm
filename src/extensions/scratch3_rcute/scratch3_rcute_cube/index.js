@@ -152,9 +152,9 @@ class Scratch3RcuteCubeBlocks {
         };
     }
     
-    setLedColor ({COLOR}) {
+    async setLedColor ({COLOR}) {
         var {r,g,b} = Cast.toRgbColorObject(COLOR);
-        this.cube.scmd(`await cube.led((${b},${g},${r}))`);
+        await this.cube.scmd(`await cube.led((${b},${g},${r}))`);
     }
     whenState({STATE}){
         return this.cube.lastAction[0]==STATE

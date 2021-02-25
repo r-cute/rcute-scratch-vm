@@ -25,10 +25,13 @@ class Scratch3RcuteAiAudioBlocks {
     
     constructor (runtime) {
         this.runtime = runtime;
+        scrlink.waitOpen().then(()=>{
+            scrlink.rpc('sst_lang_list',[]).then(l=>{this.sttLangList=l});
+        });
     }
 
     getInfo () {
-        var _ = new _formatMessage(formatMessage.setup().locale,Scratch3RcuteAiAudioBlocks.EXTENSION_ID);
+        var _ = this._ = new _formatMessage(formatMessage.setup().locale,Scratch3RcuteAiAudioBlocks.EXTENSION_ID);
         return {
             id: Scratch3RcuteAiAudioBlocks.EXTENSION_ID,
             name: Scratch3RcuteAiAudioBlocks.EXTENSION_NAME,
@@ -36,45 +39,122 @@ class Scratch3RcuteAiAudioBlocks {
             showStatusButton: false,
             blocks: [
                 {
-                    opcode: 'eyeColor',
-                    text: formatMessage({
-                        id: 'rcuteAiAudio.eyeColor',
-                        default: 'set eye color [COLOR]',
-                        description: 'set eye color'
-                    }),
+                    opcode: 'openMic',
+                    text: _('open microphone [MIC]'),
                     blockType: BlockType.COMMAND,
                     arguments: {
-                        COLOR: {
-                            type: ArgumentType.COLOR,
+                        MIC: {
+                            type: ArgumentType.STRING,
+                            menu: 'audioMenu'
                         }
                     }
                 },
-                
+                {
+                    opcode: 'closeMic',
+                    text: _('close microphone'),
+                    blockType: BlockType.COMMAND,
+                },
+                {
+                    opcode: 'wwd',
+                    text: _('[ONOFF] wake word detection'),
+                    blockType: BlockType.COMMAND,
+                    arguments: {
+                        ONOFF: {
+                            type: ArgumentType.STRING,
+                            menu: 'onoffMenu'
+                        }
+                    }
+                },
+                {
+                    opcode: 'whenWWD',
+                    text: _('when wake word is detected'),
+                    blockType: BlockType.HAT,
+                },
+                {
+                    opcode: 'stt',
+                    text: _('recognize speech in [LANG]'),
+                    blockType: BlockType.COMMAND,
+                    arguments: {
+                        LANG: {
+                            type: ArgumentType.STRING,
+                            menu: 'langMenu',
+                            defaultValue: _({id:'default_stt_lang',default:'en'})
+                        }
+                    }
+                },    
+                {
+                    opcode: 'getRecognizedSpeech',
+                    text: _('speech recognition content'),
+                    blockType: BlockType.REPORTER,
+                },                
             ],
             
             menus: {
-                buttons: {
+                audioMenu: {
                     acceptReporters: true,
-                    items: [
-                        {
-                            text: 'A',
-                            value: 'a'
-                        },
-                        {
-                            text: 'B',
-                            value: 'b'
-                        },
-                    ]
+                    items: 'getConnectedPeripheralMicrophones'
                 },
+                onoffMenu: {
+                    acceptReporters: false,
+                    items: [{text:_('start'),value:'on'},{text:_('stop'),value:'off'}]
+                },
+                langMenu: {
+                    acceptReporters: false,
+                    items: 'getSttLangMenu'
+                }
             }
         };
     }
-    
-    eyeColor ({COLOR}) {
-        var {r,g,b} = Cast.toRgbColorObject(COLOR);
-        this.cozmars.scmd(`await cozmars.eyes.color((${b},${g},${r}))`);
+    async arpc(...cmd){
+        if (!scrlink.connected){
+            scrlink.connect();
+            await scrlink.waitOpen();
+        }
+        return scrlink.rpc(...cmd);
     }
-
+    getConnectedPeripheralMicrophones() {
+        var r = ['rcuteCozmars']
+                        .map(i=>this.runtime.getPeripheralIsConnected(i)&&this.runtime.peripheralExtensions[i]._serial)
+                        .filter(i=>i);
+        return r.length?r:[{text:this._('no available microphones'),value:null}];
+    }
+    openMic({MIC}){
+        if(!MIC || this.wwdRPC && this.micSerial==MIC) return;
+        this.micSerial = MIC;
+        this.wwdRPC= scrlink.rpc('audio',[this.micSerial]);
+        this.wwdRPC.catch(e=>{this.wwdRPC=null});
+        (async()=>{
+                for await (var rec of this.wwdRPC){
+                    this.rec = rec;
+                    this.rec.timestamp = Date.now();
+                }
+            })().catch(console.warn);
+    }
+    closeMic(){
+        this.wwdRPC && this.wwdRPC.cancel();
+        this.rec=null;
+    }
+    async wwd({ONOFF}){
+        if(ONOFF=='on')await this.arpc('start_wwd',['wwd','WakeWordDetector()']);
+        else await this.arpc('stop_wwd',[]);
+    }
+    whenWWD() {
+        if(this.rec){
+            this.rec=null;
+            return true;
+        }
+        return false;
+    }
+    async stt({LANG}){
+        this.recognizedSpeech= await this.arpc('stt',[this.micSerial,'stt-'+LANG]);
+    }
+    getRecognizedSpeech() {
+        return this.recognizedSpeech
+    }
+    getSttLangMenu(){
+        var l = this.sttLangList || {'en':'English','zh':'中文'};
+        return Object.keys(l).map(i=>({text:this._(l[i]),value:i}));
+    }
 }
 
 module.exports = Scratch3RcuteAiAudioBlocks;

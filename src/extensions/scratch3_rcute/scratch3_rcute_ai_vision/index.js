@@ -5,7 +5,8 @@ const Cast = require('../../../util/cast');
 const formatMessage = require('format-message');
 const scrlink = require('../rcute-scrlink-ws');
 const _formatMessage = require('../translate');
-
+const Video = require('../../../io/video');
+const VideoProvider = require('./video-provider');
 /**
  * Icon png to be displayed at the left edge of each extension block, encoded as a data URI.
  * @type {string}
@@ -25,11 +26,17 @@ class Scratch3RcuteAiVisionBlocks {
     
     constructor (runtime) {
         this.runtime = runtime;
+        this.videoTransparency = 0;
     }
 
     getInfo () {
-        var _ = new _formatMessage(formatMessage.setup().locale,Scratch3RcuteAiVisionBlocks.EXTENSION_ID);
-        this._ = _;
+        var _ = this._ = new _formatMessage(formatMessage.setup().locale,Scratch3RcuteAiVisionBlocks.EXTENSION_ID);
+        propMenu= [{text:_('center x'),value:'0'},
+                            {text:_('center y'),value:'1'},
+                            {text:_('width'),value:'2'},
+                            {text:_('height'),value:'3'},
+                            {text:_('size'),value:'size'},
+                        ];
         return {
             id: Scratch3RcuteAiVisionBlocks.EXTENSION_ID,
             name: Scratch3RcuteAiVisionBlocks.EXTENSION_NAME,
@@ -74,6 +81,60 @@ class Scratch3RcuteAiVisionBlocks {
                         }
                     }
                 },
+                {
+                    opcode: 'qrRec',
+                    text: _('[ONOFF] QR code recognition'),
+                    blockType: BlockType.COMMAND,
+                    arguments: {
+                        ONOFF: {
+                            type: ArgumentType.STRING,
+                            menu: 'onoffMenu'
+                        }
+                    }
+                },
+                {
+                    opcode: 'getQrProp',
+                    text: _('QR code [PROP]'),
+                    blockType: BlockType.REPORTER,
+                    arguments: {
+                        PROP: {
+                            type: ArgumentType.STRING,
+                            menu: 'qrPropMenu'
+                        }
+                    }
+                },
+                {
+                    opcode: 'objRec',
+                    text: _('[ONOFF] object recognition'),
+                    blockType: BlockType.COMMAND,
+                    arguments: {
+                        ONOFF: {
+                            type: ArgumentType.STRING,
+                            menu: 'onoffMenu'
+                        }
+                    }
+                },
+                {
+                    opcode: 'getObjProp',
+                    text: _('object [PROP]'),
+                    blockType: BlockType.REPORTER,
+                    arguments: {
+                        PROP: {
+                            type: ArgumentType.STRING,
+                            menu: 'objPropMenu'
+                        }
+                    }
+                },
+                {
+                    opcode: 'setVideoTransparency',
+                    text: _('set video transparency to [TRANSPARENCY]%'),
+                    arguments: {
+                        TRANSPARENCY: {
+                            type: ArgumentType.NUMBER,
+                            defaultValue: 0
+                        }
+                    }
+                }
             ],
             
             menus: {
@@ -81,19 +142,22 @@ class Scratch3RcuteAiVisionBlocks {
                     acceptReporters: true,
                     items: 'getConnectedPeripheralCameras'
                 },
-                facePropMenu: {
-                    acceptReporters:false,
-                    items: [{text:_('center x'),value:'0'},
-                            {text:_('center y'),value:'1'},
-                            {text:_('width'),value:'2'},
-                            {text:_('height'),value:'3'},
-                            {text:_('name'),value:'name'}
-                        ]
-                },
                 onoffMenu: {
                     acceptReporters: false,
                     items: [{text:_('start'),value:'on'},{text:_('stop'),value:'off'}]
-                }
+                },
+                facePropMenu: {
+                    acceptReporters: false,
+                    items: propMenu.concat([{text:_('name'),value:'content'},])
+                },
+                objPropMenu: {
+                    acceptReporters: false,
+                    items: propMenu.concat([{text:_('object'),value:'content'},])
+                },
+                qrPropMenu: {
+                    acceptReporters: false,
+                    items: propMenu.concat([{text:_('content'),value:'content'},])
+                },               
             }
         };
     }
@@ -110,20 +174,27 @@ class Scratch3RcuteAiVisionBlocks {
                         .filter(i=>i);
         return r.length?r:[{text:this._('no available cameras'),value:null}];
     }
-    async openCamera ({CAM}) {
+    setVideoTransparency (args) {
+        this.videoTransparency = Cast.toNumber(args.TRANSPARENCY);
+        this.video.setPreviewGhost(this.videoTransparency);
+    }
+    openCamera ({CAM}) {
+        this.runtime.ioDevices.video.disableVideo();
         if(!CAM)return;
-        !scrlink.connected && (scrlink.connect()||await scrlink.waitOpen());
-        this.imRPC= scrlink.rpc('video',[CAM]);
-        this.imRPC.catch(e=>{this.imRPC=null});
-        (async()=>{
-                for await (var im of this.imRPC){
-                    this.rec = im[1];
-                    console.log(im);
-                }
-            })().catch(e=>{if(e.name!='RPCError')throw e;}); 
+        if(!this.video){
+            this.video = new Video(this.runtime);
+            this.videoProvider = new VideoProvider();
+            this.video.setProvider(this.videoProvider);
+        }
+        if(this.videoProvider.camSerial!=CAM){
+            this.videoProvider.setCamSerial(CAM);
+            this.video.disableVideo();
+        }
+        this.video.setPreviewGhost(this.videoTransparency);
+        this.video.enableVideo();
     }
     closeCamera () {
-        this.imRPC && this.imRPC.cancel();
+        this.video && this.video.disableVideo();
     }
     async facRec({ONOFF}){
         await (ONOFF=='on'?
@@ -131,9 +202,45 @@ class Scratch3RcuteAiVisionBlocks {
             :this.arpc('rm_video_processor', ['face']));
     }
     getFaceProp({PROP}){
-        return PROP=='name'?this.rec.face[1][0]:this.rec.face[0][PROP];
+        const r=this.videoProvider.rec.face;
+        if(!(r && r[0] && r[0].length))return null;
+        [loc,content] = r;
+        switch(PROP){
+            case 'content':return content[0];
+            case 'size':return loc[0][2]*loc[0][3];
+            default: return loc[0][PROP];
+        }
     }
-
+    async qrRec({ONOFF}){
+        await (ONOFF=='on'?
+            this.arpc('add_video_processor',['qr','QRCodeRecognizer()','recognize','annotate'])
+            :this.arpc('rm_video_processor', ['qr']));
+    }
+    getQrProp({PROP}){
+        const r=this.videoProvider.rec.qr;
+        if(!(r && r[0] && r[0].length))return null;
+        [loc,content] = r;
+        switch(PROP){
+            case 'content':return content[0];
+            case 'size':return loc[0][2]*loc[0][3];
+            default: return loc[0][PROP];
+        }
+    }
+    async objRec({ONOFF}){
+        await (ONOFF=='on'?
+            this.arpc('add_video_processor',['obj','ObjectRecognizer()','recognize','annotate'])
+            :this.arpc('rm_video_processor', ['obj']));
+    }
+    getObjProp({PROP}){
+        const r=this.videoProvider.rec.obj;
+        if(!(r && r[0] && r[0].length))return null;
+        [loc,content] = r;
+        switch(PROP){
+            case 'content':return content[0];
+            case 'size':return loc[0][2]*loc[0][3];
+            default: return loc[0][PROP];
+        }
+    }
 }
 
 module.exports = Scratch3RcuteAiVisionBlocks;

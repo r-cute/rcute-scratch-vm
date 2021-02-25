@@ -2,6 +2,7 @@ const ArgumentType = require('../../../extension-support/argument-type');
 const BlockType = require('../../../extension-support/block-type');
 const log = require('../../../util/log');
 const Cast = require('../../../util/cast');
+const Color = require('../../../util/color');
 const formatMessage = require('format-message');
 const scrlink = require('../rcute-scrlink-ws');
 const _formatMessage = require('../translate');
@@ -20,6 +21,7 @@ class Cozmars {
         this._extensionId = extensionId;
         runtime.registerPeripheralExtension(extensionId, this);
         this.sensors = {};
+        this.motorSpeed=[0,0];
     }
 
     // called by runtime
@@ -31,11 +33,15 @@ class Cozmars {
     // called by runtime
     connect (serial) {
         scrlink.connectPeripheral('AioRobot("'+serial.split('-')[2]+'")', serial, this)
-        .then(()=>{                       
+        .then(()=>{       
+            this.scmd('cozmars.get_animation_list()').then(l=>{this.animationList=l});   
+            this.scmd('cozmars.eyes.get_expression_list()').then(l=>{this.expressionList=l});             
             (async ()=>{
                 var rpc =scrlink.rpc('peripheral_event',[serial]);
                 rpc.catch(e=>{});
                 for await (var [ev,value] of rpc){
+                    if(ev=='pressed'&&!value)this.sensors.long_pressed=this.sensors.double_pressed=false;
+                    else if(ev=='double_pressed')this.sensors.pressed=true;
                     this.sensors[ev] = value;
                 }
             })().catch(e=>{if(e.name!='RPCError')throw e;});
@@ -71,7 +77,7 @@ class Scratch3RcuteCozmarsBlocks {
     }
 
     getInfo () {
-        var _ = new _formatMessage(formatMessage.setup().locale, Scratch3RcuteCozmarsBlocks.EXTENSION_ID);
+        var _ = this._ = new _formatMessage(formatMessage.setup().locale, Scratch3RcuteCozmarsBlocks.EXTENSION_ID);        
         return {
             id: Scratch3RcuteCozmarsBlocks.EXTENSION_ID,
             name: Scratch3RcuteCozmarsBlocks.EXTENSION_NAME,
@@ -79,24 +85,134 @@ class Scratch3RcuteCozmarsBlocks {
             showStatusButton: true,
             blocks: [
                 {
+                    opcode: 'animate',
+                    text: _('animate [ANIM]'),
+                    blockType: BlockType.COMMAND,
+                    arguments: {
+                        ANIM: {
+                            type: ArgumentType.STRING,
+                            menu: 'animationMenu'
+                        }
+                    }
+                },
+                {
                     opcode: 'setEyeColor',
                     text: _('set eye color [COLOR]'),
                     blockType: BlockType.COMMAND,
                     arguments: {
                         COLOR: {
                             type: ArgumentType.COLOR,
+                            defaultValue: '#00ffff'
                         }
                     }
                 },
                 {
-                    opcode: 'isButtonState',
-                    text: _('is button [STATE]'),
-                    blockType: BlockType.BOOLEAN,
+                    opcode: 'setEyeExpression',
+                    text: _('set expression [EXP]'),
+                    blockType: BlockType.COMMAND,
                     arguments: {
-                        STATE: {
+                        EXP: {
                             type: ArgumentType.STRING,
-                            menu: 'buttonStateMenu'
+                            menu: 'expressionMenu'
                         }
+                    }
+                },
+                {
+                    opcode: 'setScreenBrightness',
+                    text: _('set screen brightness to [VALUE]%, fade speed [SPEED]'),
+                    blockType: BlockType.COMMAND,
+                    arguments: {
+                        SPEED: {
+                            type: ArgumentType.NUMBER,
+                            menu: 'speedMenu',
+                            defaultValue: 1
+                        },
+                        VALUE: {
+                            type: ArgumentType.NUMBER,
+                            defaultValue: 10
+                        }
+                    }
+                },
+                {
+                    opcode: 'displayText',
+                    text: _('display [TXT] on screen, size [SIZE], [COLOR]'),
+                    blockType: BlockType.COMMAND,
+                    arguments: {
+                        TXT: {
+                            type: ArgumentType.STRING,
+                            defaultValue: _("I'm Cozmars")
+                        },
+                        SIZE: {
+                            type: ArgumentType.NUMBER,
+                            defaultValue: 30
+                        },
+                        COLOR: {
+                            type: ArgumentType.COLOR,
+                            defaultValue: '#00ffff'
+                        }
+                    }
+                },
+                {
+                    opcode: 'setHeadAngle',
+                    text: _('set head angle [VALUE], speed [SPEED]'),
+                    blockType: BlockType.COMMAND,
+                    arguments: {
+                        SPEED: {
+                            type: ArgumentType.NUMBER,
+                            menu: 'speedMenu',
+                            defaultValue: 1
+                        },
+                        VALUE: {
+                            type: ArgumentType.ANGLE,
+                            defaultValue: 0
+                        }
+                    }
+                },
+                {
+                    opcode: 'setLiftHeight',
+                    text: _('set lift height [VALUE]%, speed [SPEED]'),
+                    blockType: BlockType.COMMAND,
+                    arguments: {
+                        SPEED: {
+                            type: ArgumentType.NUMBER,
+                            menu: 'speedMenu',
+                            defaultValue: 1
+                        },
+                        VALUE: {
+                            type: ArgumentType.NUMBER,
+                            defaultValue: 0
+                        }
+                    }
+                },
+                {
+                    opcode: 'setMotorSpeed',
+                    text: _('set [LR] motor speed to [VALUE]%'),
+                    blockType: BlockType.COMMAND,
+                    arguments: {
+                        LR: {
+                            type: ArgumentType.STRING,
+                            menu: 'leftRightMenu',
+                        },
+                        VALUE: {
+                            type: ArgumentType.NUMBER,
+                            defaultValue: 100
+                        }
+                    }
+                },
+                {
+                    opcode: 'stop',
+                    text: _('stop'),
+                    blockType: BlockType.COMMAND,
+                },
+                {
+                    opcode: 'say',
+                    text: _('say [TXT]'),
+                    blockType: BlockType.COMMAND,
+                    arguments: {
+                        TXT: {
+                            type: ArgumentType.STRING,
+                            defaultValue: _('hello, world')
+                        },
                     }
                 },
                 {
@@ -112,6 +228,68 @@ class Scratch3RcuteCozmarsBlocks {
                     }
                 },
                 {
+                    opcode: 'isButtonState',
+                    text: _('is button [STATE]'),
+                    blockType: BlockType.BOOLEAN,
+                    arguments: {
+                        STATE: {
+                            type: ArgumentType.STRING,
+                            menu: 'buttonStateMenu'
+                        }
+                    }
+                },
+                {
+                    opcode: 'whenIrState',
+                    text: _("when [LR] infrared sensor reads [ONEZERO]"),
+                    func: 'isIrState',
+                    blockType: BlockType.HAT,
+                    arguments: {
+                        ONEZERO: {
+                            type: ArgumentType.STRING,
+                            menu: 'oneZeroMenu'
+                        },
+                        LR: {
+                            type: ArgumentType.STRING,
+                            menu: 'leftRightMenu'
+                        }
+                    }
+                },
+                {
+                    opcode: 'isIrState',
+                    text: _("[LR] infrared sensor reads [ONEZERO] ?"),
+                    blockType: BlockType.BOOLEAN,
+                    arguments: {
+                        ONEZERO: {
+                            type: ArgumentType.NUMBER,
+                            menu: 'oneZeroMenu'
+                        },
+                        LR: {
+                            type: ArgumentType.STRING,
+                            menu: 'leftRightMenu'
+                        }
+                    }
+                },
+                {
+                    opcode: 'whenSonarDistanceRange',
+                    text: _("when sonar distance reading is [GL] [DIST] cm"),
+                    blockType: BlockType.HAT,
+                    arguments: {
+                        GL: {
+                            type: ArgumentType.STRING,
+                            menu: 'greaterLessMenu'
+                        },
+                        DIST: {
+                            type: ArgumentType.NUMBER,
+                            defaultValue: 10
+                        }
+                    }
+                },
+                {
+                    opcode: 'getSonarDistance',
+                    text: _("sonar reading (cm)"),
+                    blockType: BlockType.REPORTER,
+                },
+                {
                     opcode: 'serial',
                     text: _("Cozmars' camera"),
                     blockType: BlockType.REPORTER,
@@ -125,23 +303,71 @@ class Scratch3RcuteCozmarsBlocks {
             ],
             
             menus: {
-                buttonStateMenu: [
-                        {text: _('pressed'),value:'pressed'},
-                        {text: _('released'),value:'released'},
-                        {text: _('long pressed'),value:'long_pressed'},
-                        {text: _('double pressed'),value:'double_pressed'},                 
-                    ],  
+                buttonStateMenu: ['pressed', 'released', 'double pressed', 'long pressed'].map(i=>({text:_(i),value:i.replace(' ','_')})),
+                oneZeroMenu: ['1', '0'],
+                leftRightMenu: [{text: _('left'), value:'l'}, {text:_('right'),value:'r'}],
+                greaterLessMenu: ['>','<'],
+                speedMenu: [{text: _('fast'),value:0}, {text: _('medium'),value:1}, {text: _('slow'),value:2}],
+                expressionMenu: {
+                    acceptReporters: false,
+                    items: 'getExpressionMenu'
+                },
+                animationMenu: {
+                    acceptReporters: false,
+                    items: 'getAnimationMenu'
+                },
             }
         };
     }
-    
-    setEyeColor ({COLOR}) {
-        var {r,g,b} = Cast.toRgbColorObject(COLOR);
-        this.cozmars.scmd(`await cozmars.eyes.color((${b},${g},${r}))`);
+    getExpressionMenu(){
+        return (this.expressionList||['auto', 'happy', 'sad', 'surprised', 'angry', 'neutral', 'focused', 'sleepy']).map(i=>({text:this._(i),value:i}))
+    }
+    getAnimationMenu(){
+        return (this.animationList||['pick up cube']).map(i=>({text:this._(i),value:i}));
+    }
+    async animate({ANIM}) {
+        await this.cozmars.scmd(`await cozmars.animate("${ANIM}")`);
+    }
+    async displayText({TXT,SIZE,COLOR}){
+        await this.cozmars.scmd(`await cozmars.screen.text("${TXT}",size=${Cast.toNumber(SIZE)},color="${Color.rgbToHex(Cast.toRgbColorObject(COLOR))}")`)
+    }
+    async setScreenBrightness({VALUE,SPEED}){
+        await this.cozmars.scmd(`await cozmars.screen.set_brightness(${Cast.toNumber(VALUE)/100},fade_speed=${['None',0.6,0.2][SPEED]})`);
+    }
+    async setEyeColor ({COLOR}) {
+        await this.cozmars.scmd(`await cozmars.eyes.color("${Color.rgbToHex(Cast.toRgbColorObject(COLOR))}")`);
+    }
+    async setEyeExpression({EXP}) {
+        await this.cozmars.scmd(`await cozmars.eyes.expression("${EXP}")`);
+    }
+    async setLiftHeight({VALUE,SPEED}) {
+        await this.cozmars.scmd(`await cozmars.lift.set_height(${VALUE/100},speed=${['None',2,1][Cast.toNumber(SPEED)]})`);
+    }
+    async setHeadAngle({VALUE,SPEED}) {
+        await this.cozmars.scmd(`await cozmars.head.set_angle(${VALUE},speed=${['None',80,30][Cast.toNumber(SPEED)]})`);
+    }
+    async setMotorSpeed({LR,VALUE}) {        
+        this.cozmars.motorSpeed[LR=='l'?0:1]=Cast.toNumber(VALUE)/100;
+        await this.cozmars.scmd(`await cozmars.motor.speed((${this.cozmars.motorSpeed[0]},${this.cozmars.motorSpeed[1]}))`);
+    }
+    async stop(){
+        await this.cozmars.scmd('await cozmars.stop()');
+    }
+    async say({TXT}) {
+        await this.cozmars.scmd(`await cozmars.say("${TXT}")`);
     }
     isButtonState({STATE}){
-        var p = this.cozmars.sensors['pressed'];
-        return STATE=='released'?!p:p&&this.cozmars.sensors[STATE];
+        if(STATE=='released') return !this.cozmars.sensors.pressed;
+        return this.cozmars.sensors[STATE];
+    }
+    isIrState({LR, ONEZERO}) {
+        return this.cozmars.sensors[`${LR}ir`]==Cast.toNumber(ONEZERO);
+    }
+    getSonarDistance() {
+        return this.cozmars.sensors['sonar']*100;
+    }
+    whenSonarDistanceRange({GL,DIST}) {
+        return GL=='>'?this.getSonarDistance()>DIST:this.getSonarDistance()<DIST;
     }
     serial(){return this.cozmars._serial}
 }
