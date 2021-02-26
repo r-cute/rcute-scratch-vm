@@ -47,14 +47,16 @@ module.exports= {
 	'medium': '中',
 	'slow': '慢',
 	'left': '左',
-	'right': '右'
+	'right': '右',
 },
 'rcuteAiVision': {
+	'on': '开启',
+	'off': '关闭',
+	'on flipped': '镜像开启',
 	'local camera': '本地摄像头',
 	'choose a camera from below': '从以下选择一个摄像头',
 	'no available cameras': '没有可用摄像头',
-	'open camera [CAM]': '打开摄像头 [CAM]',
-	'close camera': '关闭摄像头',
+	'turn camera [CAMONOFF]: [CAM]': '[CAMONOFF] 摄像头： [CAM]',
 	'[ONOFF] face recognition': '[ONOFF] 人脸识别',
 	'face [PROP]': '人脸的 [PROP]',
 	'[ONOFF] object recognition': '[ONOFF] 物品识别',
@@ -69,17 +71,22 @@ module.exports= {
 	'height': '高',
 	'size': '面积',
 	'name': '名字',
-	'set video transparency to [TRANSPARENCY]%': '将视频透明度设为 [TRANSPARENCY]%'
+	'set video transparency to [TRANSPARENCY]%': '将视频透明度设为 [TRANSPARENCY]%',
+	'pause': '暂停',
+	'resume': '继续',
+	'[ONOFF] video': '[ONOFF] 视频'
 },
 'rcuteAiAudio':{
-	'open microphone [MIC]': '打开麦克风 [MIC]',
-	'close microphone': '关闭麦克风',
+	'on': '开启',
+	'off': '关闭',
+	'turn microphone [MICONOFF]: [MIC]': '[MICONOFF] 麦克风： [MIC]',
+	'no available microphones': '没有可用麦克风',
 	'when wake word is detected': '当检测到唤醒词',
 	'recognize speech in [LANG]': '[LANG] 语音识别',
 	'speech recognition content': '语音识别到的内容',
 	'[ONOFF] wake word detection': '[ONOFF] 唤醒词检测',
 	'start': '开始',
 	'stop': '停止',
-	'default_stt_lang': 'zh'
+	'default_stt_lang': 'zh',
 },
 };

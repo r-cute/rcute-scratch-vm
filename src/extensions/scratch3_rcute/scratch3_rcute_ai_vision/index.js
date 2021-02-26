@@ -12,18 +12,18 @@ const VideoProvider = require('./video-provider');
  * @type {string}
  */
 // eslint-disable-next-line max-len
-const blockIconURI = 'data:image/png;base64,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';
+const blockIconURI = 'data:image/png;base64,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';
 
 
 class Scratch3RcuteAiVisionBlocks {
 
     static get EXTENSION_NAME () {
-        return '图像识别';
+        return 'rcute 视觉';
     }
     static get EXTENSION_ID () {
         return 'rcuteAiVision';
     }
-    
+
     constructor (runtime) {
         this.runtime = runtime;
         this.videoTransparency = 0;
@@ -45,20 +45,40 @@ class Scratch3RcuteAiVisionBlocks {
             blocks: [
                 {
                     opcode: 'openCamera',
-                    text: _('open camera [CAM]'),
+                    text: _('turn camera [CAMONOFF]: [CAM]'),
                     blockType: BlockType.COMMAND,
                     arguments: {
                         CAM: {
                             type: ArgumentType.STRING,
                             menu: 'videoMenu'
+                        },
+                        CAMONOFF: {
+                            type: ArgumentType.STRING,
+                            menu: 'camonoffMenu'
                         }
                     }
                 },
                 {
-                    opcode: 'closeCamera',
-                    text: _('close camera'),
+                    opcode: 'pauseVideo',
+                    text: _('[ONOFF] video'),
                     blockType: BlockType.COMMAND,
+                    arguments: {
+                        ONOFF: {
+                            type: ArgumentType.STRING,
+                            menu: 'pauseMenu'
+                        },
+                    }
                 },
+                {
+                    opcode: 'setVideoTransparency',
+                    text: _('set video transparency to [TRANSPARENCY]%'),
+                    arguments: {
+                        TRANSPARENCY: {
+                            type: ArgumentType.NUMBER,
+                            defaultValue: 0
+                        }
+                    }
+                },'---',
                 {
                     opcode: 'facRec',
                     text: _('[ONOFF] face recognition'),
@@ -80,7 +100,7 @@ class Scratch3RcuteAiVisionBlocks {
                             menu: 'facePropMenu'
                         }
                     }
-                },
+                },'---',
                 {
                     opcode: 'qrRec',
                     text: _('[ONOFF] QR code recognition'),
@@ -102,7 +122,7 @@ class Scratch3RcuteAiVisionBlocks {
                             menu: 'qrPropMenu'
                         }
                     }
-                },
+                },'---',
                 {
                     opcode: 'objRec',
                     text: _('[ONOFF] object recognition'),
@@ -125,22 +145,21 @@ class Scratch3RcuteAiVisionBlocks {
                         }
                     }
                 },
-                {
-                    opcode: 'setVideoTransparency',
-                    text: _('set video transparency to [TRANSPARENCY]%'),
-                    arguments: {
-                        TRANSPARENCY: {
-                            type: ArgumentType.NUMBER,
-                            defaultValue: 0
-                        }
-                    }
-                }
+
             ],
-            
+
             menus: {
                 videoMenu: {
                     acceptReporters: true,
                     items: 'getConnectedPeripheralCameras'
+                },
+                camonoffMenu: {
+                    acceptReporters: false,
+                    items: [{text:_('on'),value:'on'},{text:_('off'),value:'off'},{text:_('on flipped'),value:'on-flipped'}]
+                },
+                pauseMenu: {
+                    acceptReporters: false,
+                    items: [{text:_('pause'),value:'on'},{text:_('resume'),value:'off'}]
                 },
                 onoffMenu: {
                     acceptReporters: false,
@@ -157,7 +176,7 @@ class Scratch3RcuteAiVisionBlocks {
                 qrPropMenu: {
                     acceptReporters: false,
                     items: propMenu.concat([{text:_('content'),value:'content'},])
-                },               
+                },
             }
         };
     }
@@ -178,23 +197,28 @@ class Scratch3RcuteAiVisionBlocks {
         this.videoTransparency = Cast.toNumber(args.TRANSPARENCY);
         this.video.setPreviewGhost(this.videoTransparency);
     }
-    openCamera ({CAM}) {
-        this.runtime.ioDevices.video.disableVideo();
-        if(!CAM)return;
-        if(!this.video){
-            this.video = new Video(this.runtime);
-            this.videoProvider = new VideoProvider();
-            this.video.setProvider(this.videoProvider);
-        }
-        if(this.videoProvider.camSerial!=CAM){
-            this.videoProvider.setCamSerial(CAM);
-            this.video.disableVideo();
-        }
-        this.video.setPreviewGhost(this.videoTransparency);
-        this.video.enableVideo();
+    async pauseVideo({ONOFF}){
+        await this.videoProvider.videoSettings('pause','on'==ONOFF);
     }
-    closeCamera () {
-        this.video && this.video.disableVideo();
+    openCamera ({CAMONOFF,CAM}) {
+        if(!CAM)return;
+        if(CAMONOFF.indexOf('on')!=-1){
+            this.runtime.ioDevices.video.disableVideo();
+            if(!this.video){
+                this.video = new Video(this.runtime);
+                this.videoProvider = new VideoProvider();
+                this.video.setProvider(this.videoProvider);
+            }
+            this.video.mirror = CAMONOFF=='on-flipped';
+            this.video.setPreviewGhost(this.videoTransparency);
+            if(this.videoProvider.camSerial!=CAM){
+                this.video.disableVideo();
+                this.videoProvider.setCamSerial(CAM);
+            }
+            this.video.enableVideo();
+        }else if(CAMONOFF=='off'){
+            this.video && this.video.disableVideo();
+        }
     }
     async facRec({ONOFF}){
         await (ONOFF=='on'?
