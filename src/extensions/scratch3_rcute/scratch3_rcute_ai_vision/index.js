@@ -17,9 +17,6 @@ const blockIconURI = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAYA
 
 class Scratch3RcuteAiVisionBlocks {
 
-    static get EXTENSION_NAME () {
-        return 'rcute 视觉';
-    }
     static get EXTENSION_ID () {
         return 'rcuteAiVision';
     }
@@ -39,7 +36,7 @@ class Scratch3RcuteAiVisionBlocks {
                         ];
         return {
             id: Scratch3RcuteAiVisionBlocks.EXTENSION_ID,
-            name: Scratch3RcuteAiVisionBlocks.EXTENSION_NAME,
+            name: _('Robot Vision'),
             blockIconURI: blockIconURI,
             showStatusButton: false,
             blocks: [
@@ -175,7 +172,7 @@ class Scratch3RcuteAiVisionBlocks {
                 },
                 qrPropMenu: {
                     acceptReporters: false,
-                    items: propMenu.concat([{text:_('content'),value:'content'},])
+                    items: [{text:_('content'),value:'content'},]//propMenu.concat([{text:_('content'),value:'content'},])
                 },
             }
         };
@@ -226,8 +223,8 @@ class Scratch3RcuteAiVisionBlocks {
             :this.arpc('rm_video_processor', ['face']));
     }
     getFaceProp({PROP}){
-        const r=this.videoProvider.rec.face;
-        if(!(r && r[0] && r[0].length))return null;
+        const r=this.videoProvider.rec && this.videoProvider.rec.face;
+        if(!(r && r[0] && r[0].length))return '';
         [loc,content] = r;
         switch(PROP){
             case 'content':return content[0];
@@ -241,13 +238,13 @@ class Scratch3RcuteAiVisionBlocks {
             :this.arpc('rm_video_processor', ['qr']));
     }
     getQrProp({PROP}){
-        const r=this.videoProvider.rec.qr;
-        if(!(r && r[0] && r[0].length))return null;
+        const r=this.videoProvider.rec && this.videoProvider.rec.qr;
+        if(!(r && r.length))return '';
         [loc,content] = r;
         switch(PROP){
-            case 'content':return content[0];
-            case 'size':return loc[0][2]*loc[0][3];
-            default: return loc[0][PROP];
+            case 'content':return content;
+            case 'size':return loc[2]*loc[3];
+            default: return loc[PROP];
         }
     }
     async objRec({ONOFF}){
@@ -256,8 +253,8 @@ class Scratch3RcuteAiVisionBlocks {
             :this.arpc('rm_video_processor', ['obj']));
     }
     getObjProp({PROP}){
-        const r=this.videoProvider.rec.obj;
-        if(!(r && r[0] && r[0].length))return null;
+        const r=this.videoProvider.rec && this.videoProvider.rec.obj;
+        if(!(r && r[0] && r[0].length))return '';
         [loc,content] = r;
         switch(PROP){
             case 'content':return content[0];

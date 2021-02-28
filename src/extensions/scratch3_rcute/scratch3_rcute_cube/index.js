@@ -51,15 +51,28 @@ class Cube {
         return this._serial;
     }
 
-    scmd(cmd) {return scrlink.rpc('scmd', [cmd.replace('cube.', `lv["${this._serial}"].`)])}
+    async scmd(cmd, util) {
+        var p =util && util.getParam('rcute-run-async');
+        let opcode;
+        if(p){
+            var block = util.target.blocks.getBlock(util.thread.peekStack());
+            opcode = block && block.opcode;
+            if(p[block.opcode]){
+                throw 'cannot put same blocks inside "run asynchronously" block';
+            }
+        }
+        var rpc= scrlink.rpc('scmd', [cmd.replace('cube.', `lv["${this._serial}"].`)]);
+        if(p){
+            p[opcode]=rpc;
+        }else{
+            await rpc;
+        }
+    }
 }
 
 
 class Scratch3RcuteCubeBlocks {
 
-    static get EXTENSION_NAME () {
-        return '魔方';
-    }
     static get EXTENSION_ID () {
         return 'rcuteCube';
     }
@@ -73,7 +86,7 @@ class Scratch3RcuteCubeBlocks {
         var _ = new _formatMessage(formatMessage.setup().locale, Scratch3RcuteCubeBlocks.EXTENSION_ID);
         return {
             id: Scratch3RcuteCubeBlocks.EXTENSION_ID,
-            name: Scratch3RcuteCubeBlocks.EXTENSION_NAME,
+            name: _('Cube'),
             blockIconURI: blockIconURI,
             showStatusButton: true,
             blocks: [
@@ -152,9 +165,9 @@ class Scratch3RcuteCubeBlocks {
         };
     }
 
-    async setLedColor ({COLOR}) {
+    async setLedColor ({COLOR},util) {
         var {r,g,b} = Cast.toRgbColorObject(COLOR);
-        await this.cube.scmd(`await cube.led((${b},${g},${r}))`);
+        await this.cube.scmd(`await cube.led((${b},${g},${r}))`,util);
     }
     whenState({STATE}){
         return this.cube.lastAction[0]==STATE

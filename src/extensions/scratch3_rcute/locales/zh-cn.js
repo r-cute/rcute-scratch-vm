@@ -1,5 +1,6 @@
 module.exports= {
 'rcuteCube':{
+	'Cube': '魔方',
 	'set led color [COLOR]': '设置 LED 的颜色 [COLOR]',
 	'when flipped [DEG] degrees': '当魔方被翻转 [DEG] 度',
 	'when rotated, direction [DIR]': '当魔方被旋转，方向 [DIR]',
@@ -19,6 +20,7 @@ module.exports= {
 	'any': '任意',
 },
 'rcuteCozmars': {
+	'run asynchronously': '同时',
 	'animate [ANIM]': '执行动作 [ANIM]',
 	'set eye color [COLOR]': '眼睛颜色 [COLOR]',
 	'set expression [EXP]': '表情 [EXP]',
@@ -50,6 +52,7 @@ module.exports= {
 	'right': '右',
 },
 'rcuteAiVision': {
+	'Robot Vision': '机器视觉',
 	'on': '开启',
 	'off': '关闭',
 	'on flipped': '镜像开启',
@@ -77,6 +80,7 @@ module.exports= {
 	'[ONOFF] video': '[ONOFF] 视频'
 },
 'rcuteAiAudio':{
+	"Robot Speech": '机器语音',
 	'on': '开启',
 	'off': '关闭',
 	'turn microphone [MICONOFF]: [MIC]': '[MICONOFF] 麦克风： [MIC]',

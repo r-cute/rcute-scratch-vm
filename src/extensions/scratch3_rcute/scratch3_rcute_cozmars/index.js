@@ -58,7 +58,23 @@ class Cozmars {
         return this._serial;
     }
 
-    scmd(cmd) {return scrlink.rpc('scmd', [cmd.replace('cozmars.', `lv["${this._serial}"].`)])}
+    async scmd(cmd, util) {
+        var p =util && util.getParam('rcute-run-async');
+        let opcode;
+        if(p){
+            var block = util.target.blocks.getBlock(util.thread.peekStack());
+            opcode = block && block.opcode;
+            if(p[block.opcode]){
+                throw 'cannot put same blocks inside "run asynchronously" block';
+            }
+        }
+        var rpc= scrlink.rpc('scmd', [cmd.replace('cozmars.', `lv["${this._serial}"].`)]);
+        if(p){
+            p[opcode]=rpc;
+        }else{
+            await rpc;
+        }
+    }
 }
 
 
@@ -294,6 +310,14 @@ class Scratch3RcuteCozmarsBlocks {
                     text: _("sonar reading (cm)"),
                     blockType: BlockType.REPORTER,
                 },
+                {
+                    opcode: 'runAsync',
+                    blockType: BlockType.COMMAND,
+                    branchCount: 1,
+                    isTerminal: false,
+                    blockAllThreads: false,
+                    text: _('run asynchronously'),
+                },
             ],
 
             menus: {
@@ -313,42 +337,55 @@ class Scratch3RcuteCozmarsBlocks {
             }
         };
     }
+    runAsync(args,util) {
+        var p = util.getParam('rcute-run-async');
+        if(p) {
+            util.pushParam('rcute-run-async', null);
+            return Promise.allSettled(Object.values(p)).then(r=>{});
+        }else{
+            util.initParams();
+            util.pushParam('rcute-run-async', {});
+            util.startBranch(1, true);
+        }
+    }
     getExpressionMenu(){
         return (this.expressionList||['auto', 'happy', 'sad', 'surprised', 'angry', 'neutral', 'focused', 'sleepy']).map(i=>({text:this._(i),value:i}))
     }
     getAnimationMenu(){
         return (this.animationList||['pick up cube']).map(i=>({text:this._(i),value:i}));
     }
-    async animate({ANIM}) {
+    async animate({ANIM},util) {
+        if(util.getParam('rcute-run-async')) throw "cannot run animate block asynchronously";
         await this.cozmars.scmd(`await cozmars.animate("${ANIM}")`);
     }
-    async displayText({TXT,SIZE,COLOR}){
-        await this.cozmars.scmd(`await cozmars.screen.text("${TXT}",size=${Cast.toNumber(SIZE)},color="${Color.rgbToHex(Cast.toRgbColorObject(COLOR))}")`)
+    async displayText({TXT,SIZE,COLOR}, util){
+        await this.cozmars.scmd(`await cozmars.screen.text("${TXT}",size=${Cast.toNumber(SIZE)},color="${Color.rgbToHex(Cast.toRgbColorObject(COLOR))}")`,util)
     }
-    async setScreenBrightness({VALUE,SPEED}){
-        await this.cozmars.scmd(`await cozmars.screen.set_brightness(${Cast.toNumber(VALUE)/100},fade_speed=${['None',0.6,0.2][SPEED]})`);
+    async setScreenBrightness({VALUE,SPEED}, util){
+        await this.cozmars.scmd(`await cozmars.screen.set_brightness(${Cast.toNumber(VALUE)/100},fade_speed=${['None',0.6,0.2][SPEED]})`, util);
     }
-    async setEyeColor ({COLOR}) {
-        await this.cozmars.scmd(`await cozmars.eyes.color("${Color.rgbToHex(Cast.toRgbColorObject(COLOR))}")`);
+    async setEyeColor ({COLOR}, util) {
+        await this.cozmars.scmd(`await cozmars.eyes.color("${Color.rgbToHex(Cast.toRgbColorObject(COLOR))}")`, util);
     }
-    async setEyeExpression({EXP}) {
-        await this.cozmars.scmd(`await cozmars.eyes.expression("${EXP}")`);
+    async setEyeExpression({EXP}, util) {
+        await this.cozmars.scmd(`await cozmars.eyes.expression("${EXP}")`, util);
     }
-    async setLiftHeight({VALUE,SPEED}) {
-        await this.cozmars.scmd(`await cozmars.lift.set_height(${VALUE/100},speed=${['None',2,1][Cast.toNumber(SPEED)]})`);
+    async setLiftHeight({VALUE,SPEED}, util) {
+        await this.cozmars.scmd(`await cozmars.lift.set_height(${VALUE/100},speed=${['None',2,1][Cast.toNumber(SPEED)]})`, util);
     }
-    async setHeadAngle({VALUE,SPEED}) {
-        await this.cozmars.scmd(`await cozmars.head.set_angle(${VALUE},speed=${['None',80,30][Cast.toNumber(SPEED)]})`);
+    async setHeadAngle({VALUE,SPEED}, util) {
+        await this.cozmars.scmd(`await cozmars.head.set_angle(${VALUE},speed=${['None',120,60][Cast.toNumber(SPEED)]})`, util);
     }
-    async setMotorSpeed({LR,VALUE}) {
+    async setMotorSpeed({LR,VALUE}, util) {
         this.cozmars.motorSpeed[LR=='l'?0:1]=Cast.toNumber(VALUE)/100;
-        await this.cozmars.scmd(`await cozmars.motor.speed((${this.cozmars.motorSpeed[0]},${this.cozmars.motorSpeed[1]}))`);
+        await this.cozmars.scmd(`await cozmars.motor.speed((${this.cozmars.motorSpeed[0]},${this.cozmars.motorSpeed[1]}))`, util);
     }
-    async stop(){
+    async stop(args, util){
+        if(util.getParam('rcute-run-async')) throw "cannot run stop block asynchronously";
         await this.cozmars.scmd('await cozmars.stop()');
     }
-    async say({TXT}) {
-        await this.cozmars.scmd(`await cozmars.say("${TXT}")`);
+    async say({TXT}, util) {
+        await this.cozmars.scmd(`await cozmars.say("${TXT}")`, util);
     }
     isButtonState({STATE}){
         if(STATE=='released') return !this.cozmars.sensors.pressed;

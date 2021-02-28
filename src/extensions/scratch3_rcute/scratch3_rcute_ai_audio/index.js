@@ -16,9 +16,6 @@ const blockIconURI = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAYA
 
 class Scratch3RcuteAiAudioBlocks {
 
-    static get EXTENSION_NAME () {
-        return 'rcute 语音';
-    }
     static get EXTENSION_ID () {
         return 'rcuteAiAudio';
     }
@@ -34,7 +31,7 @@ class Scratch3RcuteAiAudioBlocks {
         var _ = this._ = new _formatMessage(formatMessage.setup().locale,Scratch3RcuteAiAudioBlocks.EXTENSION_ID);
         return {
             id: Scratch3RcuteAiAudioBlocks.EXTENSION_ID,
-            name: Scratch3RcuteAiAudioBlocks.EXTENSION_NAME,
+            name: _('Robot Speech'),
             blockIconURI: blockIconURI,
             showStatusButton: false,
             blocks: [
@@ -86,11 +83,11 @@ class Scratch3RcuteAiAudioBlocks {
                     text: _('speech recognition content'),
                     blockType: BlockType.REPORTER,
                 },
-                {
-                    opcode: 'test',
-                    text: 'test',
-                    blockType: BlockType.COMMAND,
-                },
+                // {
+                //     opcode: 'redirectAudio',
+                //     text: 'redirectAudio',
+                //     blockType: BlockType.COMMAND,
+                // },
             ],
 
             menus: {
@@ -164,20 +161,17 @@ class Scratch3RcuteAiAudioBlocks {
         var l = this.sttLangList || {'en':'English','zh':'中文'};
         return Object.keys(l).map(i=>({text:this._(l[i]),value:i}));
     }
-    test(){
+    redirectAudio(){
         const engine = this.runtime.audioEngine;
-        // engine.inputNode.disconnect(engine.audioContext.destination);
+        engine.inputNode.disconnect(engine.audioContext.destination);
         var dest = engine.audioContext.createMediaStreamDestination();
-        // engine.inputNode.disconnect(engine.audioContext.destination);
-        engine.getInputNode().connect(dest);
-        console.log('conn')
-        var recorder = new MediaRecorder(dest.stream);
-        recorder.ondataavailable = function(e) {
-          console.log('ava')
+        engine.inputNode.connect(dest);
+        this.recorder = new MediaRecorder(dest.stream);
+        this.recorder.ondataavailable = function(e) {
+            console.log('audo available')
         }
-
-        recorder.start();
-        console.log('sta')
+        this.recorder.start();
+        console.log('start')
     }
 }
 

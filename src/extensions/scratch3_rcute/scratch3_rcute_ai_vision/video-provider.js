@@ -8,6 +8,7 @@ module.exports = class VideoProvider {
         this.rec = this.imgdata=null;
         this.timestamp=Date.now();
         this.request={dimensions:this.RESOLUTION, mirror:false};
+        this.mirrored = false;
     }
 	setCamSerial(serial) {
 		this.camSerial = serial;
