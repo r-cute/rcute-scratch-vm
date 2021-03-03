@@ -21,6 +21,7 @@ module.exports= {
 },
 'rcuteCozmars': {
 	'run asynchronously': '同时',
+	"redirect audio to Cozmars' speaker": "声音输出至 Cozmars 扬声器",
 	'animate [ANIM]': '执行动作 [ANIM]',
 	'set eye color [COLOR]': '眼睛颜色 [COLOR]',
 	'set expression [EXP]': '表情 [EXP]',
@@ -29,7 +30,7 @@ module.exports= {
 	"I'm Cozmars": '我叫 Cozmars',
 	'set head angle [VALUE], speed [SPEED]': '头部仰角 [VALUE], 速度 [SPEED]',
 	'set lift height [VALUE]%, speed [SPEED]': '手臂抬起 [VALUE]%, 速度 [SPEED]',
-	'set [LR] motor speed to [VALUE]%': '设置 [LR] 马达速度 [VALUE]%',
+	'motor speed: left [L]%, right [R]%': '马达速度： 左 [L]%，右 [R]%',
 	'stop': '停止',
 	'say [TXT]': '说 [TXT]',
 	'hello, world': '你好，世界',
@@ -50,6 +51,11 @@ module.exports= {
 	'slow': '慢',
 	'left': '左',
 	'right': '右',
+	'[DIR] for [SEC] seconds': '[DIR] [SEC] 秒',
+	'forward': '前进',
+	'backward': '后退',
+	'turn left': '左转',
+	'turn right': '右转',
 },
 'rcuteAiVision': {
 	'Robot Vision': '机器视觉',
@@ -77,7 +83,12 @@ module.exports= {
 	'set video transparency to [TRANSPARENCY]%': '将视频透明度设为 [TRANSPARENCY]%',
 	'pause': '暂停',
 	'resume': '继续',
-	'[ONOFF] video': '[ONOFF] 视频'
+	'[ONOFF] video': '[ONOFF] 视频',
+	'content': '内容',
+	'object': '物品',
+	'Mike': '韩梅梅',
+	'memorize current face as [NAME]': '记住当前的人脸是 [NAME]',
+	"forget [NAME]'s face": '忘记 [NAME] 的长相',
 },
 'rcuteAiAudio':{
 	"Robot Speech": '机器语音',

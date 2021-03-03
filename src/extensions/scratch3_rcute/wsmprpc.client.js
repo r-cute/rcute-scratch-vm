@@ -45,8 +45,8 @@ class Queue {
     }
 
     next() {
-        return this.get().then(v=>{            
-            if(v instanceof Error) throw v;            
+        return this.get().then(v=>{
+            if(v instanceof Error) throw v;
             return (v instanceof StopIteration)?{done:true}:{done:false, value:v}
         })
     }
@@ -96,7 +96,7 @@ class RPCFuture extends Promise {
 class RPCClient{
 
     constructor(ws) {
-        this._ws = ws;        
+        this._ws = ws;
         this._mid = 0;
         this._promises = {};
         const that = this;
@@ -129,11 +129,11 @@ class RPCClient{
 	                        p.response_stream.put_nowait(new StopIteration(), true);
 	                        p.resolve();
 	                        that._pop_promise(msgid);
-	                        break;                        
+	                        break;
 	                }
 	         } catch (e) {
 	         	console.error(e)
-	         }            
+	         }
         }
     }
 

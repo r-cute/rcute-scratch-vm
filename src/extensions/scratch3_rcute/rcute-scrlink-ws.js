@@ -14,20 +14,20 @@ class RcuteScrlink {
     //     return new Promise((r,j)=> setTimeout(()=>{
     //             b.destroy();
     //             if(found.length==1)r(found[0]);
-    //             else j((found.length?'More than one':'No')+' rcute-scratch-link found')}, 
+    //             else j((found.length?'More than one':'No')+' rcute-scratch-link found')},
     //         timeout));
-    // } 
+    // }
 
     // /**
     // * factory method to create an instance without scratch link address provided.
     // */
-    // static async createLink (runtime, extensionId) {        
+    // static async createLink (runtime, extensionId) {
     //     var service = await findLinkService();
     //     var ws = new WebSocket('ws://'+service.host+":"+service.port);
     //     return new RcuteScrlink(ws, runtime, extensionId);
     // }
 
-    constructor (url) {        
+    constructor (url) {
         this.disconnectCallbacks={};
         this.requestErrorCallbacks={};
         this.connect(url);
@@ -49,7 +49,7 @@ class RcuteScrlink {
     connectPeripheral (init, serial, peri) {
         return this.rpc('connect_peripheral', [init, serial]).then(()=>{
             peri._serial = serial;
-            peri._runtime.emit(peri._runtime.constructor.PERIPHERAL_CONNECTED);    
+            peri._runtime.emit(peri._runtime.constructor.PERIPHERAL_CONNECTED);
             this.addErrorCallback(peri);
         }).catch(e=>{
             peri._runtime.emit(peri._runtime.constructor.PERIPHERAL_REQUEST_ERROR, {
@@ -59,7 +59,7 @@ class RcuteScrlink {
         })
     }
 
-    disconnectPeripheral (peri) {        
+    disconnectPeripheral (peri) {
         return this.rpc('disconnect_peripheral', [peri._serial]).then(()=>{
             peri._serial = null;
             peri._runtime.emit(peri._runtime.constructor.PERIPHERAL_DISCONNECTED);
@@ -67,7 +67,7 @@ class RcuteScrlink {
     }
 
     disconnect () {
-        if (this.connected) {      
+        if (this.connected) {
             this._ws.close();
             this._ws = null;
         }
@@ -79,13 +79,13 @@ class RcuteScrlink {
         this._stub = new RPCClient(this._ws);
         this.rpc = this._stub.rpc.bind(this._stub)
         this._ws.onclose = this.handleDisconnectError.bind(this);
-        this._ws.onerror = this.handleRequestError.bind(this);   
+        this._ws.onerror = this.handleRequestError.bind(this);
     }
 
     get connected () {
         return this._ws && (this._ws.readyState === WebSocket.OPEN || this._ws.readyState==WebSocket.CONNECTING);
     }
-    
+
     addErrorCallback(peri) {
         this.disconnectCallbacks[peri._extensionId] = ()=>{
             peri._serial = null;
@@ -123,11 +123,11 @@ function waitForSocketConnection(socket, callback, error){
             if (socket.readyState===WebSocket.CONNECTING){
                 waitForSocketConnection(socket, callback, error);
             } else if(socket.readyState === WebSocket.OPEN) {
-                callback();                
+                callback();
             }else{
                 error();
             }
         }, 100);
 }
 
-module.exports = new RcuteScrlink('ws://localhost:20111');
+module.exports = new RcuteScrlink(`ws://${window.location.hostname}:20111`);

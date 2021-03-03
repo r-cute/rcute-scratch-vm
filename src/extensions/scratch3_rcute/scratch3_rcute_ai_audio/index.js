@@ -83,11 +83,6 @@ class Scratch3RcuteAiAudioBlocks {
                     text: _('speech recognition content'),
                     blockType: BlockType.REPORTER,
                 },
-                // {
-                //     opcode: 'redirectAudio',
-                //     text: 'redirectAudio',
-                //     blockType: BlockType.COMMAND,
-                // },
             ],
 
             menus: {
@@ -128,7 +123,7 @@ class Scratch3RcuteAiAudioBlocks {
         if(MICONOFF=='on'){
             if(this.wwdRPC && this.micSerial==MIC) return;
             this.micSerial = MIC;
-            this.wwdRPC= scrlink.rpc('audio',[this.micSerial]);
+            this.wwdRPC= scrlink.rpc('mic',[this.micSerial]);
             this.wwdRPC.catch(e=>{});
             (async()=>{
                     for await (var rec of this.wwdRPC){
@@ -161,18 +156,7 @@ class Scratch3RcuteAiAudioBlocks {
         var l = this.sttLangList || {'en':'English','zh':'中文'};
         return Object.keys(l).map(i=>({text:this._(l[i]),value:i}));
     }
-    redirectAudio(){
-        const engine = this.runtime.audioEngine;
-        engine.inputNode.disconnect(engine.audioContext.destination);
-        var dest = engine.audioContext.createMediaStreamDestination();
-        engine.inputNode.connect(dest);
-        this.recorder = new MediaRecorder(dest.stream);
-        this.recorder.ondataavailable = function(e) {
-            console.log('audo available')
-        }
-        this.recorder.start();
-        console.log('start')
-    }
+
 }
 
 module.exports = Scratch3RcuteAiAudioBlocks;

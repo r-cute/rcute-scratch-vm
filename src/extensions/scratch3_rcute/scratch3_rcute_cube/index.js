@@ -52,21 +52,7 @@ class Cube {
     }
 
     async scmd(cmd, util) {
-        var p =util && util.getParam('rcute-run-async');
-        let opcode;
-        if(p){
-            var block = util.target.blocks.getBlock(util.thread.peekStack());
-            opcode = block && block.opcode;
-            if(p[block.opcode]){
-                throw 'cannot put same blocks inside "run asynchronously" block';
-            }
-        }
-        var rpc= scrlink.rpc('scmd', [cmd.replace('cube.', `lv["${this._serial}"].`)]);
-        if(p){
-            p[opcode]=rpc;
-        }else{
-            await rpc;
-        }
+        return await scrlink.rpc('scmd', [cmd.replace('cube.', `lv["${this._serial}"].`)]);
     }
 }
 

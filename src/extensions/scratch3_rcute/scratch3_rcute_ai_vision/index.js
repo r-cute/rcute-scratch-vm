@@ -24,6 +24,7 @@ class Scratch3RcuteAiVisionBlocks {
     constructor (runtime) {
         this.runtime = runtime;
         this.videoTransparency = 0;
+        this.memorizedFaces=new Set();
     }
 
     getInfo () {
@@ -84,6 +85,28 @@ class Scratch3RcuteAiVisionBlocks {
                         ONOFF: {
                             type: ArgumentType.STRING,
                             menu: 'onoffMenu'
+                        }
+                    }
+                },
+                {
+                    opcode: 'memorizeFace',
+                    text: _('memorize current face as [NAME]'),
+                    blockType: BlockType.COMMAND,
+                    arguments: {
+                        NAME: {
+                            type: ArgumentType.STRING,
+                            defaultValue: _('Mike')
+                        }
+                    }
+                },
+                {
+                    opcode: 'forgetFace',
+                    text: _("forget [NAME]'s face"),
+                    blockType: BlockType.COMMAND,
+                    arguments: {
+                        NAME: {
+                            type: ArgumentType.STRING,
+                            menu: 'faceNameMenu'
                         }
                     }
                 },
@@ -164,16 +187,20 @@ class Scratch3RcuteAiVisionBlocks {
                 },
                 facePropMenu: {
                     acceptReporters: false,
-                    items: propMenu.concat([{text:_('name'),value:'content'},])
+                    items: [{text:_('name'),value:'content'},].concat(propMenu)
                 },
                 objPropMenu: {
                     acceptReporters: false,
-                    items: propMenu.concat([{text:_('object'),value:'content'},])
+                    items: [{text:_('object'),value:'content'},].concat(propMenu)
                 },
                 qrPropMenu: {
                     acceptReporters: false,
-                    items: [{text:_('content'),value:'content'},]//propMenu.concat([{text:_('content'),value:'content'},])
+                    items: [{text:_('content'),value:'content'},]//.concat(propMenu)
                 },
+                faceNameMenu: {
+                    acceptReporters: true,
+                    items: 'getFacesInMemory'
+                }
             }
         };
     }
@@ -231,6 +258,17 @@ class Scratch3RcuteAiVisionBlocks {
             case 'size':return loc[0][2]*loc[0][3];
             default: return loc[0][PROP];
         }
+    }
+    async memorizeFace({NAME}){
+        await this.arpc('scmd',[`lv["face"].memorize("${NAME}",lastimg)`]);
+        this.memorizedFaces.add(NAME);
+    }
+    async forgetFace({NAME}){
+        await this.arpc('scmd',[`lv["face"].forget("${NAME}")`]);
+        this.memorizedFaces.delete(NAME);
+    }
+    getFacesInMemory(){
+        return this.memorizedFaces.size? [...this.memorizedFaces]:[this._('Mike')]
     }
     async qrRec({ONOFF}){
         await (ONOFF=='on'?

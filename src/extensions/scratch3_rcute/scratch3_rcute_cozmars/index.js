@@ -5,6 +5,7 @@ const Cast = require('../../../util/cast');
 const Color = require('../../../util/color');
 const formatMessage = require('format-message');
 const scrlink = require('../rcute-scrlink-ws');
+const {Queue, StopIteration} = require('../wsmprpc.client');
 const _formatMessage = require('../translate');
 
 /**
@@ -13,6 +14,23 @@ const _formatMessage = require('../translate');
  */
 // eslint-disable-next-line max-len
 const blockIconURI = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAYAAADDPmHLAAAFFklEQVR4Ae3BUY7jMAwFwe77H/rtZzBYkhFgRIhjVcnxaHI8mhyPJsejyfFocjyaHI8mx6PJ8WhyPJocjybHo8nxaHI8mhyPJsejyfFosi4cdyNvyHvhuDtpyHvhuDtpyCwcv0IKMgvHr5CCzMLxK6Qgs3D8CinILPTk+DahJwWZhZ4c3yb0pCCz0JPj24SeFGQWenJ8m9CTgsxCT45vE3pSkFnoyfFtQk8KMgs9qYXj06QWelKQWehJLRyfJrXQk4LMQk9q4fg0qYWeFGQWelILx6dJLfSkILPQk1o4Pk1qoScFmYWe1MLxaVILPSnILPSkFo5Pk1roSUFmoSe1cHya1EJPCjILPamF49OkFnpSkFnoSS0cnya10JOCzEJPamFFwhbKZQlbKIukFnpSkFnoSS2sSNhCuSxhC2WR1EJPCjILPamFFQlbKJclbKEsklroSUFmoSe1sCJhC+WyhC2URVILPSnILPSkFlYkbKFclrCFskhqoScFmYWe1MKKhC2UyxK2UBZJLfSkILPQk1pYkbCFclnCFsoiqYWeFGQWelILKxK2UC5L2EJZJLXQk4LMQk9qYUXCFsplCVsoi6QWelKQWehJLaxI2EK5LGELZZHUQk8KMgs9qYUVCVsolyVsoSySWuhJQWahJ7WwImEL5bKELZRFUgs9Kcgs9KQWViRsoVyWsIWySGqhJwWZhZ7UwoqELZTLErZQFkkt9KQgs9CTWliRsIVyWcIWyiKphZ4UZBZ6UgsrErZQLkvYQlkktdCTgsxCT2phRcIWymUJWyiLpBZ6UpBZ6EktrEjYQrksYQtlkdRCTwoyCz2phRUJWyiXJWyhLJJa6ElBZqEntbAiYQvlsoQtlEVSCz0pyCz0pBZWJGyhXJawhbJIaqEnBZmFntTCioQtlMsStlAWSS30pCCz0JNaWJGwhXJZwhbKIqmFnhRkFnpSCysStlAuS9hCWSS10JOCzEJPamFFwhbKZQlbKIukFnpSkFnoSS2sSNhCuSxhC2WR1EJPCjILPamF49OkFnpSkFnoSS0cnya10JOCzEJPauH4NKmFnhRkFnpSC8enSS30pCCz0JNaOD5NaqEnBZmFntTC8WlSCz0pyCz0pBaOT5Na6ElBZqEntXB8mtRCTwoyCz2phePTpBZ6UpBZ6MnxbUJPCjILPTm+TehJQWahJ8e3CT0pyCz05Pg2oScFmYWeHN8m9KQgs9CT49uEnhRkFnpyfJvQk4LMQk/uLfwl9xd6UpBZ6Mk9hffknkJPCjILPbmfsE7uJ/SkILPQk3sJ/5OX8D+5l9CTgsxCT+4j/CW98JfcR+hJQWahJ/cRXuS98CL3EXpSkFnoyT2Ev+S98JfcQ+hJQWahJ/cQXmRdeJF7CD0pyCz05B7Ci6wLL3IPoScFmYWe3EN4kXXhRe4h9KQgs9CT+wgv8l54kfsIPSnILPTkPsKLvBde5D5CTwoyCz25j/CX9MJfch+hJwWZhZ7cS/ifvIT/yb2EnhRkFnpyP2Gd3E/oSUFmoSf3FN6Tewo9Kcgs9OTewl9yf6EnBZmFnhzfJvSkILPQk+PbhJ4UZBZ6cnyb0JOCzEJPjm8TelKQWejJ8W1CTwoyCz05vk3oSUFm4fgVUpBZOH6FFGQWjl8hBZmF41dIQd4Lx91JQ94Lx91JQ9aF427kDTkeTY5Hk+PR5Hg0OR5NjkeT49HkeDQ5Hk2OR5Pj0eR4NDkeTY5Hk+PR5Hi0fw4SYZBuTUHjAAAAAElFTkSuQmCC';
+
+async function checkAsync(promise,util){
+    var p =util && util.getParam('rcute-run-async');
+    // let opcode;
+    // if(p){
+        // var block = util.target.blocks.getBlock(util.thread.peekStack());
+        // opcode = block && block.opcode;
+        // if(p[block.opcode]){
+        //     throw 'cannot put same blocks inside "run asynchronously" block';
+        // }
+    // }
+    if(p){p.push(promise);
+        // p[opcode]=promise;
+    }else{
+        await promise;
+    }
+}
 
 class Cozmars {
 
@@ -59,21 +77,7 @@ class Cozmars {
     }
 
     async scmd(cmd, util) {
-        var p =util && util.getParam('rcute-run-async');
-        let opcode;
-        if(p){
-            var block = util.target.blocks.getBlock(util.thread.peekStack());
-            opcode = block && block.opcode;
-            if(p[block.opcode]){
-                throw 'cannot put same blocks inside "run asynchronously" block';
-            }
-        }
-        var rpc= scrlink.rpc('scmd', [cmd.replace('cozmars.', `lv["${this._serial}"].`)]);
-        if(p){
-            p[opcode]=rpc;
-        }else{
-            await rpc;
-        }
+        return await checkAsync(scrlink.rpc('scmd', [cmd.replace('cozmars.', `lv["${this._serial}"].`)]), util);
     }
 }
 
@@ -206,18 +210,33 @@ class Scratch3RcuteCozmarsBlocks {
                     }
                 },
                 {
-                    opcode: 'setMotorSpeed',
-                    text: _('set [LR] motor speed to [VALUE]%'),
+                    opcode: 'go',
+                    text: _('[DIR] for [SEC] seconds'),
                     blockType: BlockType.COMMAND,
                     arguments: {
-                        LR: {
+                        DIR: {
                             type: ArgumentType.STRING,
-                            menu: 'leftRightMenu',
+                            menu: 'goDirMenu',
                         },
-                        VALUE: {
+                        SEC: {
                             type: ArgumentType.NUMBER,
-                            defaultValue: 100
+                            defaultValue: 2
                         }
+                    }
+                },
+                {
+                    opcode: 'setMotorSpeed',
+                    text: _('motor speed: left [L]%, right [R]%'),
+                    blockType: BlockType.COMMAND,
+                    arguments: {
+                        L: {
+                            type: ArgumentType.NUMBER,
+                            defaultValue: 50,
+                        },
+                        R: {
+                            type: ArgumentType.NUMBER,
+                            defaultValue: 50,
+                        },
                     }
                 },
                 {
@@ -235,6 +254,12 @@ class Scratch3RcuteCozmarsBlocks {
                             defaultValue: _('hello, world')
                         },
                     }
+                },
+                {
+                    opcode: 'redirectAudio',
+                    text: _("redirect audio to Cozmars' speaker"),
+                    blockType: BlockType.COMMAND,
+                    branchCount: 1,
                 },'---',
                 {
                     opcode: 'whenButtonState',
@@ -309,7 +334,7 @@ class Scratch3RcuteCozmarsBlocks {
                     opcode: 'getSonarDistance',
                     text: _("sonar reading (cm)"),
                     blockType: BlockType.REPORTER,
-                },
+                },'---',
                 {
                     opcode: 'runAsync',
                     blockType: BlockType.COMMAND,
@@ -334,6 +359,7 @@ class Scratch3RcuteCozmarsBlocks {
                     acceptReporters: false,
                     items: 'getAnimationMenu'
                 },
+                goDirMenu: ['forward','backward','turn left','turn right'].map(i=>({text:_(i),value:i.replace(' ','_')})),
             }
         };
     }
@@ -344,8 +370,69 @@ class Scratch3RcuteCozmarsBlocks {
             return Promise.allSettled(Object.values(p)).then(r=>{});
         }else{
             util.initParams();
-            util.pushParam('rcute-run-async', {});
+            util.pushParam('rcute-run-async', []);//{});
             util.startBranch(1, true);
+        }
+    }
+    redirectAudio(args, util){
+        const engine = this.runtime.audioEngine;
+        let {audioQueue,speakerRPC,scriptNode,prefillList} =util.stackFrame;
+        var prefill = 5;
+        var bs = 1600;
+        if (!audioQueue){
+            var op = {dtype:'int8', sample_rate:16000, block_duration:0.1};
+            audioQueue = util.stackFrame.audioQueue = new Queue(0);
+            util.stackFrame.speakerRPC= scrlink.rpc('speaker', [this.cozmars._serial, op], request_stream=audioQueue);
+            engine.inputNode.disconnect();
+            scriptNode = util.stackFrame.scriptNode = engine.audioContext.createScriptProcessor(4096,1,1);
+            engine.inputNode.connect(scriptNode);
+            scriptNode.connect(engine.audioContext.destination);
+            var downsampleRate = engine.audioContext.sampleRate/op.sample_rate;
+            var ii=0, i8 = new Int8Array(bs);
+            prefillList = [];
+            util.stackFrame.redirectAudioState = 'open';
+            scriptNode.onaudioprocess = evt=> { // downsample and convert to int8
+                if(util.stackFrame.redirectAudioState=='closed')return;
+                var f32 = evt.inputBuffer.getChannelData(0);
+                var fi = 0;
+                var c=0;
+                while(fi<f32.length){
+                    var sum=0, num=0;
+                    var winEnd = Math.min(c*downsampleRate, f32.length)
+                    while(fi<winEnd) {
+                        sum += f32[fi]; num++; fi++;
+                    }
+                    i8[ii]=parseInt(sum/num*127); //127 for int8, 32767 for int16
+                    ii++;c++;
+                    if(ii==i8.length){
+                        if(prefill>0) {
+                            prefillList.push(new Uint8Array(i8.buffer)); prefill--;
+                            if(prefill==0) prefillList.forEach(i=>{audioQueue.put_nowait(i)});
+                        }
+                        else audioQueue.put_nowait(new Uint8Array(i8.buffer));
+                        i8=new Int8Array(bs);
+                        ii=0;
+                    }
+                }
+                if('closing'==util.stackFrame.redirectAudioState){
+                    if(i8.filter(i=>i).length==0){ // no sound, now really stop streaming
+                        if(prefill>0) prefillList.forEach(i=>audioQueue.put_nowait(i));
+                        if(ii!=i8.length)audioQueue.put_nowait(new Uint8Array(i8.buffer));
+                        audioQueue.put_nowait(new Uint8Array(bs)); // play a piece of empty sound
+                        audioQueue.put_nowait(new StopIteration());
+                        util.stackFrame.redirectAudioState='closed';
+                    }
+                }
+            };
+            util.startBranch(1,true);
+        }else{
+            util.stackFrame.redirectAudioState ='closing';
+            util.stackFrame.audioQueue = util.stackFrame.speakerRPC= util.stackFrame.scriptNode= null;
+            return speakerRPC.then(()=>{
+                engine.inputNode.disconnect();
+                scriptNode.disconnect();
+                engine.inputNode.connect(engine.audioContext.destination);
+            });
         }
     }
     getExpressionMenu(){
@@ -362,7 +449,7 @@ class Scratch3RcuteCozmarsBlocks {
         await this.cozmars.scmd(`await cozmars.screen.text("${TXT}",size=${Cast.toNumber(SIZE)},color="${Color.rgbToHex(Cast.toRgbColorObject(COLOR))}")`,util)
     }
     async setScreenBrightness({VALUE,SPEED}, util){
-        await this.cozmars.scmd(`await cozmars.screen.set_brightness(${Cast.toNumber(VALUE)/100},fade_speed=${['None',0.6,0.2][SPEED]})`, util);
+        await this.cozmars.scmd(`await cozmars.screen.set_brightness(${Math.clamp(Cast.toNumber(VALUE)/100,0,1)},fade_speed=${['None',0.6,0.2][SPEED]})`, util);
     }
     async setEyeColor ({COLOR}, util) {
         await this.cozmars.scmd(`await cozmars.eyes.color("${Color.rgbToHex(Cast.toRgbColorObject(COLOR))}")`, util);
@@ -371,14 +458,16 @@ class Scratch3RcuteCozmarsBlocks {
         await this.cozmars.scmd(`await cozmars.eyes.expression("${EXP}")`, util);
     }
     async setLiftHeight({VALUE,SPEED}, util) {
-        await this.cozmars.scmd(`await cozmars.lift.set_height(${VALUE/100},speed=${['None',2,1][Cast.toNumber(SPEED)]})`, util);
+        await this.cozmars.scmd(`await cozmars.lift.set_height(${Math.clamp(Cast.toNumber(VALUE)/100,0,1)},speed=${['None',2,1][Cast.toNumber(SPEED)]})`, util);
     }
     async setHeadAngle({VALUE,SPEED}, util) {
-        await this.cozmars.scmd(`await cozmars.head.set_angle(${VALUE},speed=${['None',120,60][Cast.toNumber(SPEED)]})`, util);
+        await this.cozmars.scmd(`await cozmars.head.set_angle(${Math.clamp(VALUE,-30,30)},speed=${['None',120,60][Cast.toNumber(SPEED)]})`, util);
     }
-    async setMotorSpeed({LR,VALUE}, util) {
-        this.cozmars.motorSpeed[LR=='l'?0:1]=Cast.toNumber(VALUE)/100;
-        await this.cozmars.scmd(`await cozmars.motor.speed((${this.cozmars.motorSpeed[0]},${this.cozmars.motorSpeed[1]}))`, util);
+    async setMotorSpeed({L,R}, util) {
+        await this.cozmars.scmd(`await cozmars.motor.speed((${Math.clamp(Cast.toNumber(L)/100,-1,1)},${Math.clamp(Cast.toNumber(R)/100,-1,1)}))`, util);
+    }
+    async go({DIR,SEC},util){
+        await this.cozmars.scmd(`await cozmars.${DIR}(${Cast.toNumber(SEC)})`,util);
     }
     async stop(args, util){
         if(util.getParam('rcute-run-async')) throw "cannot run stop block asynchronously";
