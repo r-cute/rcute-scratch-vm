@@ -6,6 +6,8 @@ const formatMessage = require('format-message');
 const scrlink = require('../rcute-scrlink-ws');
 const _formatMessage = require('../translate');
 
+const {Queue, StopIteration} = require('../wsmprpc.client');
+
 /**
  * Icon png to be displayed at the left edge of each extension block, encoded as a data URI.
  * @type {string}
@@ -22,8 +24,71 @@ class Scratch3RcuteAiAudioBlocks {
 
     constructor (runtime) {
         this.runtime = runtime;
+        this.redirectAudioState = 'closed';
+        this.redirectAudioRequest = [];
         scrlink.waitOpen().then(()=>{
             scrlink.rpc('sst_lang_list',[]).then(l=>{this.sttLangList=l});
+        });
+    }
+    startRedirectAudio(serial) {
+        const engine = this.runtime.audioEngine;
+        let {audioQueue,scriptNode,speakerRPC} =this;
+        var prefill = 5;
+        var bs = 1600;
+        if (this.redirectAudioState=='closed'){
+            var op = {dtype:'int8', sample_rate:16000, block_duration:0.1};
+            audioQueue=this.audioQueue = new Queue(0);
+            this.speakerRPC= scrlink.rpc('speaker', [serial, op], request_stream=audioQueue);
+            engine.inputNode.disconnect();
+            this.scriptNode = engine.audioContext.createScriptProcessor(4096,1,1);
+            engine.inputNode.connect(this.scriptNode);
+            this.scriptNode.connect(engine.audioContext.destination);
+            var downsampleRate = engine.audioContext.sampleRate/op.sample_rate;
+            var ii=0, i8 = new Int8Array(bs);
+            prefillList = [];
+            this.redirectAudioState = 'open';
+            let that = this;
+            this.scriptNode.onaudioprocess = evt=> { // downsample and convert to int8
+                if(that.redirectAudioState=='closed')return;
+                var f32 = evt.inputBuffer.getChannelData(0);
+                var fi = 0, c=0;
+                while(fi<f32.length){
+                    var sum=0, num=0;
+                    var winEnd = Math.min(c*downsampleRate, f32.length)
+                    while(fi<winEnd) {
+                        sum += f32[fi]; num++; fi++;
+                    }
+                    i8[ii]=parseInt(sum/num*127); //127 for int8, 32767 for int16
+                    ii++;c++;
+                    if(ii==i8.length){
+                        if(prefill>0) {
+                            prefillList.push(new Uint8Array(i8.buffer)); prefill--;
+                            if(prefill==0) prefillList.forEach(i=>{audioQueue.put_nowait(i)});
+                        }
+                        else audioQueue.put_nowait(new Uint8Array(i8.buffer));
+                        i8=new Int8Array(bs);
+                        ii=0;
+                    }
+                }
+                if('closing'==that.redirectAudioState){
+                    if(i8.filter(i=>i).length==0){ // no sound, now really stop streaming
+                        if(prefill>0) prefillList.forEach(i=>audioQueue.put_nowait(i));
+                        if(ii!=i8.length)audioQueue.put_nowait(new Uint8Array(i8.buffer));
+                        audioQueue.put_nowait(new Uint8Array(bs)); // play a piece of empty sound
+                        audioQueue.put_nowait(new StopIteration());
+                        that.redirectAudioState='closed';
+                    }
+                }
+            };
+        }
+    }
+    stopRedirectAudio() {
+        this.redirectAudioState ='closing';
+        const engine = this.runtime.audioEngine;
+        return this.speakerRPC.then(()=>{
+            engine.inputNode.disconnect();
+            this.scriptNode.disconnect();
+            engine.inputNode.connect(engine.audioContext.destination);
         });
     }
 
@@ -82,6 +147,18 @@ class Scratch3RcuteAiAudioBlocks {
                     opcode: 'getRecognizedSpeech',
                     text: _('speech recognition content'),
                     blockType: BlockType.REPORTER,
+                },'---',
+                {
+                    opcode: 'redirectAudio',
+                    text: _("redirect audio to [SPEAKER]"),
+                    blockType: BlockType.COMMAND,
+                    branchCount: 1,
+                    arguments: {
+                        SPEAKER: {
+                                type: ArgumentType.STRING,
+                                menu: 'speakerMenu',
+                            },
+                    }
                 },
             ],
 
@@ -89,6 +166,10 @@ class Scratch3RcuteAiAudioBlocks {
                 audioMenu: {
                     acceptReporters: true,
                     items: 'getConnectedPeripheralMicrophones'
+                },
+                speakerMenu: {
+                    acceptReporters: true,
+                    items: 'getConnectedPeripheralSpeakers'
                 },
                 miconoffMenu: {
                     acceptReporters: false,
@@ -105,6 +186,22 @@ class Scratch3RcuteAiAudioBlocks {
             }
         };
     }
+    redirectAudio(args, util){
+        if(!util.stackFrame.redirectAudio){
+            util.stackFrame.redirectAudio=true;
+            this.redirectAudioRequest.push(0);
+            if(this.redirectAudioRequest.length==1){
+                this.startRedirectAudio(args.SPEAKER);
+            }
+            util.startBranch(1, true);
+        }else{
+            util.stackFrame.redirectAudio=false;
+            this.redirectAudioRequest.pop();
+            if(this.redirectAudioRequest.length==0){
+                return this.stopRedirectAudio();
+            }
+        }
+    }
     async arpc(...cmd){
         if (!scrlink.connected){
             scrlink.connect();
@@ -112,11 +209,17 @@ class Scratch3RcuteAiAudioBlocks {
         }
         return scrlink.rpc(...cmd);
     }
-    getConnectedPeripheralMicrophones() {
+    getConnectedPeripheral(def){
         var r = ['rcuteCozmars']
                         .map(i=>this.runtime.getPeripheralIsConnected(i)&&this.runtime.peripheralExtensions[i]._serial)
                         .filter(i=>i);
-        return r.length?r:[{text:this._('no available microphones'),value:null}];
+        return r.length?r:[{text:this._(def),value:null}];
+    }
+    getConnectedPeripheralMicrophones() {
+        return this.getConnectedPeripheral('no available microphones');
+    }
+    getConnectedPeripheralSpeakers() {
+        return this.getConnectedPeripheral('no available speakers');
     }
     openMic({MICONOFF,MIC}){
         if(!MIC)return;

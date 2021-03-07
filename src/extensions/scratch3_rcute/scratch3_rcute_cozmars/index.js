@@ -5,7 +5,6 @@ const Cast = require('../../../util/cast');
 const Color = require('../../../util/color');
 const formatMessage = require('format-message');
 const scrlink = require('../rcute-scrlink-ws');
-const {Queue, StopIteration} = require('../wsmprpc.client');
 const _formatMessage = require('../translate');
 
 /**
@@ -39,7 +38,6 @@ class Cozmars {
         this._extensionId = extensionId;
         runtime.registerPeripheralExtension(extensionId, this);
         this.sensors = {};
-        this.motorSpeed=[0,0];
     }
 
     // called by runtime
@@ -95,6 +93,7 @@ class Scratch3RcuteCozmarsBlocks {
         this.runtime = runtime;
         this.cozmars = new Cozmars(this.runtime, Scratch3RcuteCozmarsBlocks.EXTENSION_ID);
     }
+
 
     getInfo () {
         var _ = this._ = new _formatMessage(formatMessage.setup().locale, Scratch3RcuteCozmarsBlocks.EXTENSION_ID);
@@ -255,12 +254,7 @@ class Scratch3RcuteCozmarsBlocks {
                         },
                     }
                 },
-                {
-                    opcode: 'redirectAudio',
-                    text: _("redirect audio to Cozmars' speaker"),
-                    blockType: BlockType.COMMAND,
-                    branchCount: 1,
-                },'---',
+                '---',
                 {
                     opcode: 'whenButtonState',
                     text: _('when button is [STATE]'),
@@ -372,67 +366,6 @@ class Scratch3RcuteCozmarsBlocks {
             util.initParams();
             util.pushParam('rcute-run-async', []);//{});
             util.startBranch(1, true);
-        }
-    }
-    redirectAudio(args, util){
-        const engine = this.runtime.audioEngine;
-        let {audioQueue,speakerRPC,scriptNode,prefillList} =util.stackFrame;
-        var prefill = 5;
-        var bs = 1600;
-        if (!audioQueue){
-            var op = {dtype:'int8', sample_rate:16000, block_duration:0.1};
-            audioQueue = util.stackFrame.audioQueue = new Queue(0);
-            util.stackFrame.speakerRPC= scrlink.rpc('speaker', [this.cozmars._serial, op], request_stream=audioQueue);
-            engine.inputNode.disconnect();
-            scriptNode = util.stackFrame.scriptNode = engine.audioContext.createScriptProcessor(4096,1,1);
-            engine.inputNode.connect(scriptNode);
-            scriptNode.connect(engine.audioContext.destination);
-            var downsampleRate = engine.audioContext.sampleRate/op.sample_rate;
-            var ii=0, i8 = new Int8Array(bs);
-            prefillList = [];
-            util.stackFrame.redirectAudioState = 'open';
-            scriptNode.onaudioprocess = evt=> { // downsample and convert to int8
-                if(util.stackFrame.redirectAudioState=='closed')return;
-                var f32 = evt.inputBuffer.getChannelData(0);
-                var fi = 0;
-                var c=0;
-                while(fi<f32.length){
-                    var sum=0, num=0;
-                    var winEnd = Math.min(c*downsampleRate, f32.length)
-                    while(fi<winEnd) {
-                        sum += f32[fi]; num++; fi++;
-                    }
-                    i8[ii]=parseInt(sum/num*127); //127 for int8, 32767 for int16
-                    ii++;c++;
-                    if(ii==i8.length){
-                        if(prefill>0) {
-                            prefillList.push(new Uint8Array(i8.buffer)); prefill--;
-                            if(prefill==0) prefillList.forEach(i=>{audioQueue.put_nowait(i)});
-                        }
-                        else audioQueue.put_nowait(new Uint8Array(i8.buffer));
-                        i8=new Int8Array(bs);
-                        ii=0;
-                    }
-                }
-                if('closing'==util.stackFrame.redirectAudioState){
-                    if(i8.filter(i=>i).length==0){ // no sound, now really stop streaming
-                        if(prefill>0) prefillList.forEach(i=>audioQueue.put_nowait(i));
-                        if(ii!=i8.length)audioQueue.put_nowait(new Uint8Array(i8.buffer));
-                        audioQueue.put_nowait(new Uint8Array(bs)); // play a piece of empty sound
-                        audioQueue.put_nowait(new StopIteration());
-                        util.stackFrame.redirectAudioState='closed';
-                    }
-                }
-            };
-            util.startBranch(1,true);
-        }else{
-            util.stackFrame.redirectAudioState ='closing';
-            util.stackFrame.audioQueue = util.stackFrame.speakerRPC= util.stackFrame.scriptNode= null;
-            return speakerRPC.then(()=>{
-                engine.inputNode.disconnect();
-                scriptNode.disconnect();
-                engine.inputNode.connect(engine.audioContext.destination);
-            });
         }
     }
     getExpressionMenu(){

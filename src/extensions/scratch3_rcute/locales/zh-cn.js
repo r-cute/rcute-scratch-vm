@@ -21,7 +21,6 @@ module.exports= {
 },
 'rcuteCozmars': {
 	'run asynchronously': '同时',
-	"redirect audio to Cozmars' speaker": "声音输出至 Cozmars 扬声器",
 	'animate [ANIM]': '执行动作 [ANIM]',
 	'set eye color [COLOR]': '眼睛颜色 [COLOR]',
 	'set expression [EXP]': '表情 [EXP]',
@@ -92,10 +91,12 @@ module.exports= {
 },
 'rcuteAiAudio':{
 	"Robot Speech": '机器语音',
+	"redirect audio to [SPEAKER]": "声音输出至 [SPEAKER]",
 	'on': '开启',
 	'off': '关闭',
 	'turn microphone [MICONOFF]: [MIC]': '[MICONOFF] 麦克风： [MIC]',
 	'no available microphones': '没有可用麦克风',
+	'no available speakers': '没有可用扬声器',
 	'when wake word is detected': '当检测到唤醒词',
 	'recognize speech in [LANG]': '[LANG] 语音识别',
 	'speech recognition content': '语音识别到的内容',
