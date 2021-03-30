@@ -7,6 +7,7 @@ const scrlink = require('../rcute-scrlink-ws');
 const _formatMessage = require('../translate');
 const Video = require('../../../io/video');
 const VideoProvider = require('./video-provider');
+const rutil = require('../util');
 /**
  * Icon png to be displayed at the left edge of each extension block, encoded as a data URI.
  * @type {string}
@@ -224,25 +225,27 @@ class Scratch3RcuteAiVisionBlocks {
     async pauseVideo({ONOFF}){
         await this.videoProvider.videoSettings('pause','on'==ONOFF);
     }
-    openCamera ({CAMONOFF,CAM}) {
-        if(!CAM)return;
-        if(CAMONOFF.indexOf('on')!=-1){
-            this.runtime.ioDevices.video.disableVideo();
-            if(!this.video){
-                this.video = new Video(this.runtime);
-                this.videoProvider = new VideoProvider();
-                this.video.setProvider(this.videoProvider);
+    async openCamera ({CAMONOFF,CAM}) {
+        if(CAM){
+            if(CAMONOFF.indexOf('on')!=-1){
+                this.runtime.ioDevices.video.disableVideo();
+                if(!this.video){
+                    this.video = new Video(this.runtime);
+                    this.videoProvider = new VideoProvider();
+                    this.video.setProvider(this.videoProvider);
+                }
+                this.video.mirror = CAMONOFF=='on-flipped';
+                this.video.setPreviewGhost(this.videoTransparency);
+                if(this.videoProvider.camSerial!=CAM){
+                    this.video.disableVideo();
+                    this.videoProvider.setCamSerial(CAM);
+                }
+                this.video.enableVideo();
+            }else if(CAMONOFF=='off'){
+                this.video && this.video.disableVideo();
             }
-            this.video.mirror = CAMONOFF=='on-flipped';
-            this.video.setPreviewGhost(this.videoTransparency);
-            if(this.videoProvider.camSerial!=CAM){
-                this.video.disableVideo();
-                this.videoProvider.setCamSerial(CAM);
-            }
-            this.video.enableVideo();
-        }else if(CAMONOFF=='off'){
-            this.video && this.video.disableVideo();
         }
+        await rutil.sleep(400);
     }
     async facRec({ONOFF}){
         await (ONOFF=='on'?

@@ -5,7 +5,7 @@ const Cast = require('../../../util/cast');
 const formatMessage = require('format-message');
 const scrlink = require('../rcute-scrlink-ws');
 const _formatMessage = require('../translate');
-
+const rutil = require('../util')
 const {Queue, StopIteration} = require('../wsmprpc.client');
 
 /**
@@ -27,7 +27,7 @@ class Scratch3RcuteAiAudioBlocks {
         this.redirectAudioState = 'closed';
         this.redirectAudioRequest = [];
         scrlink.waitOpen().then(()=>{
-            scrlink.rpc('sst_lang_list',[]).then(l=>{this.sttLangList=l});
+            scrlink.rpc('stt_lang_list',[]).then(l=>{this.sttLangList=l});
         });
     }
     startRedirectAudio(serial) {
@@ -221,22 +221,25 @@ class Scratch3RcuteAiAudioBlocks {
     getConnectedPeripheralSpeakers() {
         return this.getConnectedPeripheral('no available speakers');
     }
-    openMic({MICONOFF,MIC}){
-        if(!MIC)return;
-        if(MICONOFF=='on'){
-            if(this.wwdRPC && this.micSerial==MIC) return;
-            this.micSerial = MIC;
-            this.wwdRPC= scrlink.rpc('mic',[this.micSerial]);
-            this.wwdRPC.catch(e=>{});
-            (async()=>{
-                    for await (var rec of this.wwdRPC){
-                        this.rec = rec;
-                        this.rec.timestamp = Date.now();
-                    }
-                })().catch(e=>{this.wwdRPC=this.rec=null;console.warn(e)});
-        }else if(MICONOFF=='off' && MIC==this.micSerial){
-            this.wwdRPC && this.wwdRPC.cancel();
+    async openMic({MICONOFF,MIC}){
+        if(MIC){
+            if(MICONOFF=='on'){
+                if(!(this.wwdRPC && this.micSerial==MIC)){
+                    this.micSerial = MIC;
+                    this.wwdRPC= scrlink.rpc('mic',[this.micSerial]);
+                    this.wwdRPC.catch(e=>{});
+                    (async()=>{
+                            for await (var rec of this.wwdRPC){
+                                this.rec = rec;
+                                this.rec.timestamp = Date.now();
+                            }
+                        })().catch(e=>{this.wwdRPC=this.rec=null;console.warn(e)});
+                }
+            }else if(MICONOFF=='off' && MIC==this.micSerial){
+                this.wwdRPC && this.wwdRPC.cancel();
+            }
         }
+        await rutil.sleep(400);
     }
     async wwd({ONOFF}){
         if(ONOFF=='on')await this.arpc('start_wwd',['wwd','WakeWordDetector()']);
